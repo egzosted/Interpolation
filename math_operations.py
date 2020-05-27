@@ -1,4 +1,5 @@
 import numpy as np
+from math import sqrt
 import copy
 
 """
@@ -11,26 +12,27 @@ import copy
 
 
 def Lagrange(X, Y, size):
+    # array of size - 1 basic functions (N funcs for N + 1 points)
     base_func = np.zeros(shape=[size, size])
+    # array of denominators in lagrange polynomials
     denominators = np.zeros(shape=[size, 1])
+    # array of coefficients in lagrange polynomials
     polynomial = np.zeros(shape=[size, 1])
     row = np.zeros(shape=[size, 1])
+
     for i in range(0, size):
+        base_func[i][size - 1] = 1
         denominator = 1
         for j in range(0, size):
             if i != j:
                 denominator *= X[i] - X[j]
-        denominators[i] = denominator
-
-    for i in range(0, size):
-        base_func[i][size - 1] = 1
-        for j in range(0, size):
-            if i != j:
                 right = X[j] * -1
                 for k in range(0, size):
                     base_func[i][k] = base_func[i][k] * right
                     if k != size - 1:
                         base_func[i][k] += base_func[i][k + 1]
+        denominators[i] = denominator
+
     for i in range(0, size):
         for j in range(0, size):
             base_func[i][j] /= denominators[i]
@@ -42,11 +44,38 @@ def Lagrange(X, Y, size):
     return polynomial
 
 
+"""
+        function that calculates value of polynomial from vector
+        @param polynomial vector of coefficients
+        @param arg, point that we want to calculate value in
+        @return value of polynomial in certain point
+"""
+
+
 def poly_val(polynomial, arg):
     value = 0
     for i in range(len(polynomial)):
         value += polynomial[i] * (arg ** (len(polynomial) - i - 1))
     return value
+
+
+"""
+        function that calculates RMSD from cofficients of polynomial
+        @param polynomial vector of coefficients
+        @param test_distance list of arguments from function to interpolate
+        @param test_altitude list of values from function to interpolate
+        @return value of polynomial in certain point
+"""
+
+
+def RMSD(polynomial, test_distance, test_altitude):
+    rmsd = 0
+    for i in range(len(test_distance)):
+        rmsd += (poly_val(polynomial, test_distance[i]) - test_altitude[i]) ** 2
+        print(poly_val(polynomial, test_distance[i]))
+        print(test_altitude[i])
+    rmsd = sqrt(rmsd / len(test_distance))
+    return rmsd
 
 
 """
