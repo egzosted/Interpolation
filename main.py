@@ -1,37 +1,35 @@
 # Michał Piekarski 175456
 import numpy as np
 import copy
-import numpy.linalg as la
 import pandas as pd
-from math_operations import Lagrange, LU, vector_norm, poly_val, RMSD
+from math_operations import Lagrange, RMSD
 
-profile = pd.read_csv("profile/small.csv", sep=",")
+
+profile = pd.read_csv("profile/plaska.csv", sep=",")
 train_distance = []
-train_altitude = []
+train_elevation = []
+test_distance = []
+test_elevation = []
 index = 0
 for i in profile["Distance"]:
-    if index % 2 < 2:
+    if index % 5 == 0:
         train_distance.append(i)
+    test_distance.append(i)
     index += 1
 
 index = 0
-for i in profile["Altitude"]:
-    if index % 2 < 2:
-        train_altitude.append(i)
+for i in profile["Elevation"]:
+    if index % 5 == 0:
+        train_elevation.append(i)
+    test_elevation.append(i)
     index += 1
-
-print(train_distance)
-pol = Lagrange(train_distance, train_altitude, len(train_distance))
-# interp = []
-# for i in profile["Distance"]:
-#     interp.append(poly_val(pol, i))
+pol = Lagrange(train_distance, train_elevation, len(train_distance))
+interpolated = pol.interpolate(test_distance)
 
 # hit = 0
-# index = 0
-# for i in profile["Altitude"]:
-#     if abs(i - interp[index]) < 1:
-#         print(index)
+# for i in range(len(interpolated)):
+#     if abs(interpolated[i] - test_elevation[i]) < 4.0:
+#         print(i)
 #         hit += 1
-#     index += 1
-# print(hit * 100 / index)
-print(RMSD(pol, train_distance, train_altitude))
+# print(hit * 100 / len(interpolated))
+# print(RMSD(interpolated, train_elevation))
