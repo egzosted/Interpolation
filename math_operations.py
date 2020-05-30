@@ -1,5 +1,6 @@
 import numpy as np
 from math import sqrt
+import numpy.linalg as la
 import copy
 
 """
@@ -14,9 +15,9 @@ class Lagrange:
         self.size = size
 
     """
-        method that creates Lagrange interpolation in argument
-        @param x point that we want to calculate value in
-        @return interpolated value
+        method that uses Lagrange interpolation to estimate value in list of arguments
+        @param test_distance points that we want to calculate value in
+        @return interpolated values
     """
 
     def interpolate(self, test_distance):
@@ -31,48 +32,79 @@ class Lagrange:
                 interpolated_elevation[i] += self.train_elevation[index] * base
         return interpolated_elevation
 
-    # """
-    #         function that creates interpolation function
-    #         @param X vector of points where we know correct value
-    #         @param Y vector of values in point X
-    #         @param size size of vectors X and Y
-    #         @return interpolated polynomial
-    # """
-    #
-    #
+
+"""
+    Class that represents Spline interpolation for certain train data
+"""
 
 
-def Lagrange_pol(X, Y, size):
-    # array of size - 1 basic functions(N funcs for N + 1 points)
-    base_func = np.zeros(shape=[size, size])
-    # array of denominators in lagrange polynomials
-    denominators = np.zeros(shape=[size, 1])
-    # array of coefficients in lagrange polynomials
-    polynomial = np.zeros(shape=[size, 1])
-    row = np.zeros(shape=[size, 1])
+class Spline:
+    def __init__(self, X, Y, size):
+        self.train_distance = X
+        self.train_elevation = Y
+        self.size = size
+        self.coefficients = np.zeros(shape=[4 * (size - 1), 4 * (size - 1)])
+        self.free_variables = np.zeros(shape=[4 * (size - 1), 1])
 
-    for i in range(0, size):
-        base_func[i][size - 1] = 1.0
-        denominator = 1.0
-        for j in range(0, size):
-            if i != j:
-                denominator *= float(X[i]) - float(X[j])
-                right = X[j] * -1
-                for k in range(0, size):
-                    base_func[i][k] = base_func[i][k] * float(right)
-                    if k != size - 1:
-                        base_func[i][k] += base_func[i][k + 1]
-        denominators[i] = denominator
+        # size - 1 equations for Sj(xj) = f(xj)
+        # size - 1 equations for Sj(xj + 1) = f(xj + 1)
+        for i in range(size - 1):
+            self.coefficients[i][4 * i] = 1
+            self.coefficients[i][4 * i + 1] = 0
+            self.coefficients[i][4 * i + 2] = 0
+            self.coefficients[i][4 * i + 3] = 0
+            h = self.train_distance[i + 1] - self.train_distance[i]
+            self.coefficients[size - 1 + i][4 * i] = 1
+            self.coefficients[size - 1 + i][4 * i + 1] = h
+            self.coefficients[size - 1 + i][4 * i + 2] = h * h
+            self.coefficients[size - 1 + i][4 * i + 3] = h * h * h
+            self.free_variables[i] = self.train_elevation[i]
+            self.free_variables[size - 1 + i] = self.train_elevation[i + 1]
 
-    for i in range(0, size):
-        for j in range(0, size):
-            base_func[i][j] /= denominators[i]
+        # # size - 2 equations for S'j-1(xj) = S'j(xj)
+        # # size - 2 equations for S"j-1(xj) = S"j(xj)
+        for i in range(1, size - 1):
+            h = self.train_distance[i] - self.train_distance[i - 1]
+            self.coefficients[2 * (size - 1) + i - 1][4 * (i - 1) + 1] = 1
+            self.coefficients[2 * (size - 1) + i - 1][4 * (i - 1) + 2] = 2 * h
+            self.coefficients[2 * (size - 1) + i - 1][4 * (i - 1) + 3] = 3 * h * h
+            self.coefficients[2 * (size - 1) + i - 1][4 * (i - 1) + 5] = -1
+            self.coefficients[3 * (size - 1) + i - 2][4 * (i - 1) + 2] = 2
+            self.coefficients[3 * (size - 1) + i - 2][4 * (i - 1) + 3] = 6 * h
+            self.coefficients[3 * (size - 1) + i - 2][4 * (i - 1) + 6] = -2
 
-    for i in range(0, size):
-        row = base_func[i] * float(Y[i])
-        for j in range(0, size):
-            polynomial[j] += row[j]
-    return polynomial
+        # # 2 equations for corner values
+        self.coefficients[4 * (size - 1) - 2][2] = 2
+        self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 1] = 6 * h
+        self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 2] = 2
+
+        self.polynomial = la.solve(self.coefficients, self.free_variables)
+
+    def interpolate(self, test_distance):
+        results = np.zeros(shape=[len(test_distance), 1])
+        for i in range(len(test_distance)):
+            for j in range(len(self.train_distance) - 1):
+                if test_distance[i] >= self.train_distance[j] and test_distance[i] <= self.train_distance[j + 1]:
+                    x0 = self.train_distance[j]
+                    results[i] = poly_val(self.polynomial, test_distance[i] - x0, 4 * j)
+                    break
+        return results
+
+        """
+function that calculates value of polynomial from vector
+@param polynomial vector of coefficients
+@param arg, point that we want to calculate value in
+@return value of polynomial in certain point
+"""
+
+
+def poly_val(polynomial, arg, j):
+    value = 0
+    index = 0
+    for i in range(j, j + 4):
+        value += polynomial[i] * (arg ** index)
+        index += 1
+    return value
 
 
 """
