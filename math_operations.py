@@ -78,7 +78,8 @@ class Spline:
         self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 1] = 6 * h
         self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 2] = 2
 
-        self.polynomial = la.solve(self.coefficients, self.free_variables)
+        # self.polynomial = la.solve(self.coefficients, self.free_variables)
+        self.polynomial = LU(self.coefficients, self.free_variables, len(self.free_variables))
 
     def interpolate(self, test_distance):
         results = np.zeros(shape=[len(test_distance), 1])
@@ -137,13 +138,33 @@ def RMSD(interpolated_elevation, test_elevation):
 def LU(A, b, size):
     U = copy.deepcopy(A)
     L = np.eye(size)
-    for k in range(size - 1):
-        for j in range(k + 1, size):
-            L[j][k] = U[j][k] / U[k][k]
-            for i in range(k, size):
-                U[j][i] = U[j][i] - L[j][k] * U[k][i]
+    P = np.eye(size)  # permutation matrix
 
-    y = forward_substitution(L, b, size)
+    for j in range(size - 1):
+        # finding pivot
+        max = -1
+        ind = 0
+        for i in range(j, size):
+            if abs(U[i][j]) > max:
+                ind = i
+                max = abs(U[i][j])
+
+        # interchange rows
+        for i in range(size):
+            P[j][i], P[ind][i] = P[ind][i], P[j][i]
+
+        for i in range(j):
+            L[j][i], L[ind][i] = L[ind][i], L[j][i]
+
+        for i in range(j, size):
+            U[j][i], U[ind][i] = U[ind][i], U[j][i]
+
+        for k in range(j + 1, size):
+            L[k][j] = U[k][j] / U[j][j]
+            for i in range(j, size):
+                U[k][i] = U[k][i] - L[k][j] * U[j][i]
+
+    y = forward_substitution(L, np.dot(P, b), size)
     x = backward_substitution(U, y, size)
     return x
 
