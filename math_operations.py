@@ -1,6 +1,5 @@
 import numpy as np
 from math import sqrt
-import numpy.linalg as la
 import copy
 
 """
@@ -78,7 +77,6 @@ class Spline:
         self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 1] = 6 * h
         self.coefficients[4 * (size - 1) - 1][4 * (size - 1) - 2] = 2
 
-        # self.polynomial = la.solve(self.coefficients, self.free_variables)
         self.polynomial = LU(self.coefficients, self.free_variables, len(self.free_variables))
 
     def interpolate(self, test_distance):

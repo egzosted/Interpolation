@@ -1,10 +1,10 @@
 # Michał Piekarski 175456
 import pandas as pd
-from math_operations import Lagrange, Spline, RMSD, LU
-import numpy as np
+from math_operations import Lagrange, Spline, RMSD
+import matplotlib.pyplot as plt
 
 
-profile = pd.read_csv("profile/plaska.csv", sep=",")
+profile = pd.read_csv("profile/kilka_wzniesien.csv", sep=",")
 train_distance = []
 train_elevation = []
 test_distance = []
@@ -25,14 +25,16 @@ for i in profile["Elevation"]:
 
 spl = Spline(train_distance, train_elevation, len(train_distance))
 res = spl.interpolate(test_distance)
+pol = Lagrange(train_distance, train_elevation, len(train_distance))
+res2 = pol.interpolate(test_distance)
 print(RMSD(res, test_elevation))
-# pol = Lagrange(train_distance, train_elevation, len(train_distance))
-# interpolated = pol.interpolate(test_distance)
 
-# hit = 0
-# for i in range(len(res)):
-#     if abs(res[i] - test_elevation[i]) < 0.3:
-#         print(i)
-#         hit += 1
-# print(hit * 100 / len(res))
-# print(RMSD(interpolated, train_elevation))
+
+plt.title("Porownanie zaimplementowanych metod")
+plt.xlabel("Dystans [m]")
+plt.ylabel("Wysokosc [m]")
+plt.semilogy(test_distance, test_elevation, 'r', label="Wysokość rzeczywista")
+plt.semilogy(test_distance, res, 'g', label="Wysokość aproksymowana splajnami")
+plt.semilogy(test_distance, res2, 'b', label="Wysokość aproksymowana Lagrangem")
+plt.legend()
+plt.show()
